@@ -29,6 +29,24 @@ class os {
   file {'/home/monitor/scripts/memory_check':
   require => Exec[retrieve_memory_check],
   }
+  
+
+  file {'/home/monitor/src':
+     ensure => 'directory'
+  }
+
+  file {'/home/monitor/src/my_memory_check':
+     ensure => 'link',
+     target => '/home/monitor/scripts/memory_check',
+  }
+
+  cron {'my_memory_check':
+     command => "/home/monitor/src/my_memory_check",
+     user => root,
+     hour => '*',
+     minute => '*/10',
+     require => File['/home/monitor/src/my_memory_check']
+  }
 
 }
 
