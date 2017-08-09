@@ -35,6 +35,7 @@ class os {
   file { '/home/monitor/scripts/memory_check':
     ensure => 'present',
     require => Exec[retrieve_memory_check],
+    mode => "u+x",
     before => File['/home/monitor/src'],
   }
 
