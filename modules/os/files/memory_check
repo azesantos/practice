@@ -1,0 +1,114 @@
+#!/bin/bash
+# by Aze Santos
+
+
+############################
+#####                 ######
+#####      PART 1     ######
+#####   SET OPTIONS   ######
+#####                 ######
+############################
+
+
+while getopts "c:w:e:" opt    
+do
+case $opt in
+c ) CRIT="$OPTARG";;
+w ) WARN="$OPTARG";;
+e ) EMAIL="$OPTARG";;
+#* ) USAGE
+esac
+done
+
+
+##############################################
+#####                                   ######
+#####               PART 2              ######
+#####   DECLARE FUNCTIONS & VARIABLES   ######
+#####                                   ######
+##############################################
+
+
+TOTAL_MEM=$( free | grep Mem: | awk '{print $2}' )
+USED_MEM=$( free | grep Mem: | awk '{print $3}' )
+ERROR='ERROR: WARNING Threshold exceeds CRITICAL Threshold'
+
+
+CRIT_GIVEN()
+{
+[[ $CRIT =~ ^[0-9]+$ ]] && [ $CRIT -ge 1 -a $CRIT -le 100 ]
+}
+
+
+WARN_GIVEN()
+{
+[[ $WARN =~ ^[0-9]+$ ]] && [ $WARN -ge 1 -a $WARN -le 100 ]
+}
+
+
+EMAIL_TOP()
+{
+ps aux --sort -rss | head -11 | awk '{print $2 " " $11}' | mail -s "`date +"%Y%m%d %H:%M"` memory check - critical" $EMAIL
+}
+
+
+USAGE()
+{
+echo 'USAGE: memory_check [-w WARNING%] [-c CRITICAL%] [-e EMAIL]
+  -w <1-100>           Set WARNING Threshold Percentage
+  -c <1-100>           Set CRITICAL Treshold Percentage
+  -e <email address>   Set EMAIL address for reporting'
+}
+
+
+
+############################
+#####                 ######
+#####      PART 3     ######
+#####   MAIN SCRIPT   ######
+#####                 ######
+############################
+
+
+if CRIT_GIVEN || WARN_GIVEN ; 
+then CONTINUE=true
+
+########## CRITICAL ##########
+
+if CRIT_GIVEN ;
+then CRIT_MEM=$(( $TOTAL_MEM * $CRIT / 100 )) ;
+	if CRIT_GIVEN && [[ $WARN -ge $CRIT ]] ;
+        then echo "$ERROR
+        "
+        USAGE
+	CONTINUE=false
+	elif [ $USED_MEM -ge $CRIT_MEM ] ;
+	then CONTINUE=false
+		if [[ -n $EMAIL ]] ;
+		then EMAIL_TOP
+		exit 2
+		else
+		echo "MEMORY CRITICAL: provide [-e EMAIL] to send report"
+		exit 2
+		fi
+	fi
+fi
+
+########## WARNING ##########
+
+if [[ $CONTINUE == true ]] && WARN_GIVEN ;
+then WARN_MEM=$(( $TOTAL_MEM * $WARN / 100 ))
+	if [ $USED_MEM -ge $WARN_MEM ] ;
+	then echo "WARNING" ;
+	exit 1
+	else
+	exit 0
+	fi
+else 
+exit 0
+fi
+
+########## USAGE ##########
+
+else USAGE
+fi
